@@ -42,6 +42,9 @@
                     <div class="d-flex justify-content-between align-items-center text-secondary small">
                         <span>Status: <span class="badge bg-success">{{ $pergunta->status }}</span></span>
                         <span>{{ $pergunta->created_at->format('d/m/Y H:i') }}</span>
+                        <div class="card-author">
+                            Autor: {{ $pergunta->user->name ?? 'Anônimo' }}
+                        </div>
                     </div>
                 </div>
             </div>
