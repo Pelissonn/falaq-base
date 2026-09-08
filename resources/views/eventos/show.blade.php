@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="row">
-    <!-- Formularço de envio de Pergunta -->
+    <!-- Formulário de envio de Pergunta -->
     <div class="col-md-5 mb-4">
         <div class="card shadow-sm p-3">
             <h4 class="fw-bold mb-3">💬 Faça sua Pergunta</h4>
@@ -32,7 +32,8 @@
     <div class="col-md-7">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold m-0">📋 Perguntas do Evento</h4>
-            <span class="text-secondary small">Total no Banco: {{ $evento->perguntas->count() }}</span>
+            <!-- Otimizado com parênteses () para rodar um COUNT(*) rápido no banco ao invés de carregar tudo na memória -->
+            <span class="text-secondary small">Total no Banco: {{ $evento->perguntas()->count() }}</span>
         </div>
 
         @forelse($perguntas as $pergunta)
@@ -42,8 +43,9 @@
                     <div class="d-flex justify-content-between align-items-center text-secondary small">
                         <span>Status: <span class="badge bg-success">{{ $pergunta->status }}</span></span>
                         <span>{{ $pergunta->created_at->format('d/m/Y H:i') }}</span>
+                        <!-- ✅ TICKET #003: Exibição do nome do autor com fallback seguro -->
                         <div class="card-author">
-                            Autor: {{ $pergunta->user->name ?? 'Anônimo' }}
+                            Autor: <strong>{{ $pergunta->user->name ?? 'Anônimo' }}</strong>
                         </div>
                     </div>
                 </div>
