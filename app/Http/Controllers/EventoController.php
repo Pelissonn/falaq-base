@@ -28,13 +28,14 @@ class EventoController extends Controller
         $evento = Evento::findOrFail($id);
 
         $perguntas = Pergunta::where('evento_id', $evento->id)
-            ->with('user') 
+            ->where('is_public', true) // <--- Ticket #006: Filtra apenas as perguntas aprovadas/públicas
+            ->with('user')
             ->latest()
             ->paginate(10);
 
         return view('eventos.show', compact('evento', 'perguntas'));
     }
-
+    
     /**
      * TICKET #001 (BUG LEGADO DE SEGURANÇA):
      * Salva a pergunta usando a requisição sem validações rigorosas.
