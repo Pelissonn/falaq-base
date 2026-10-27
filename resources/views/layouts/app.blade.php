@@ -21,6 +21,18 @@
             <a class="navbar-brand fw-bold" href="{{ route('eventos.index') }}">
                 🚀 FalaQ-Eu_T_3scuto <span class="badge bg-secondary fs-6">MVP</span>
             </a>
+            <div class="d-flex align-items-center gap-3 small">
+                @auth
+                    <span class="text-secondary">{{ auth()->user()->name }}</span>
+                    <form action="{{ route('logout') }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-link btn-sm p-0">Sair</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}">Entrar</a>
+                    <a href="{{ route('register') }}">Cadastrar</a>
+                @endauth
+            </div>
         </div>
     </nav>
 

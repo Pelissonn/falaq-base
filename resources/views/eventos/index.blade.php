@@ -7,6 +7,9 @@
     <div class="col-md-12 mb-4">
         <h2 class="fw-bold">📅 Eventos Ativos</h2>
         <p class="text-muted">Selecione o evento para enviar e visualizar as perguntas em tempo real.</p>
+        @auth
+            <a href="{{ route('eventos.create') }}" class="btn btn-primary btn-sm fw-bold">+ Criar evento</a>
+        @endauth
     </div>
 
     @foreach($eventos as $evento)
@@ -17,7 +20,7 @@
                 <p class="card-text text-secondary">{{ $evento->descricao }}</p>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <span class="badge bg-purple" style="background:#7c6af7;">
-                        {{ $evento->perguntas->count() }} perguntas
+                        {{ $evento->perguntas_count }} perguntas
                     </span>
                     <a href="{{ route('eventos.show', $evento->id) }}" class="btn btn-primary btn-sm">
                         Entrar no Evento &rarr;

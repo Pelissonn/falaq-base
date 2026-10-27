@@ -2,54 +2,84 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreEventoRequest;
+use App\Http\Requests\StorePerguntaRequest;
 use App\Models\Evento;
 use App\Models\Pergunta;
-use App\Http\Requests\StorePerguntaRequest;
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class EventoController extends Controller
 {
-    public function index()
+    public function index(): View
     {
-        $eventos = Evento::all();
+        // Rascunhos ficam fora da página principal; a contagem só considera perguntas públicas.
+        $eventos = Evento::where('is_published', true)
+            ->withCount(['perguntas' => fn ($q) => $q->where('is_public', true)])
+            ->get();
+
         return view('eventos.index', compact('eventos'));
     }
 
-    /**
-     * TICKET #002 (BUG LEGADO DE PERFORMANCE):
-     * Atualmente esta ação executa Pergunta::all(), carregando 5.000 registros
-     * na memória, travando a página e misturando perguntas de outros eventos!
-     *
-     * AÇÃO ESPERADA:
-     * Refatore a query para filtrar pelo evento, ordenar pelas mais recentes e paginar de 10 em 10.
-     */
-    public function show($id)
+    public function create(): View
+    {
+        return view('eventos.create');
+    }
+
+    public function store(StoreEventoRequest $request): RedirectResponse
+    {
+        $evento = Evento::create([
+            'user_id' => Auth::id(),
+            'titulo' => $request->validated('titulo'),
+            'descricao' => $request->validated('descricao'),
+            'is_published' => true,
+        ]);
+
+        return redirect()->route('eventos.show', $evento->id)
+            ->with('sucesso', 'Evento criado com sucesso!');
+    }
+
+    public function show($id): View
     {
         $evento = Evento::findOrFail($id);
 
+        // Rascunho só pode ser visto pelo organizador dono do evento.
+        abort_unless($evento->is_published || (Auth::check() && Auth::id() === $evento->user_id), 404);
+
+        // Tickets #002 (where + paginate), #004 (with), #006 (is_public) e #012 (ranking por votos).
         $perguntas = Pergunta::where('evento_id', $evento->id)
-            ->with('user') 
+            ->where('is_public', true)
+            ->with('user')
+            ->withCount('votos')
+            ->orderByDesc('votos_count')
             ->latest()
             ->paginate(10);
 
-        return view('eventos.show', compact('evento', 'perguntas'));
+        // Ids das perguntas da página em que o usuário logado já votou (uma única consulta).
+        $votadas = Auth::check()
+            ? Auth::user()->perguntasVotadas()
+                ->whereIn('perguntas.id', $perguntas->pluck('id'))
+                ->pluck('perguntas.id')
+                ->all()
+            : [];
+
+        return view('eventos.show', compact('evento', 'perguntas', 'votadas'));
     }
 
-    /**
-     * TICKET #001 (BUG LEGADO DE SEGURANÇA):
-     * Salva a pergunta usando a requisição sem validações rigorosas.
-     */
-    public function storePergunta(StorePerguntaRequest $request, $id)
+    public function storePergunta(StorePerguntaRequest $request, $id): RedirectResponse
     {
         $evento = Evento::findOrFail($id);
 
         Pergunta::create([
             'evento_id' => $evento->id,
-            'texto'     => $request->input('texto'),
-            'status'    => 'pendente',
+            'user_id' => Auth::id(),
+            'texto' => $request->validated('texto'),
+            'status' => 'pendente',
+            'is_public' => false,
         ]);
 
         return redirect()->route('eventos.show', $evento->id)
-            ->with('sucesso', 'Sua pergunta foi enviada com sucesso!');
+            ->with('sucesso', 'Sua pergunta foi enviada e aguarda aprovação do organizador.');
     }
 }
